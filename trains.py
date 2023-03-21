@@ -1,5 +1,5 @@
 import sqlite3
-import datetime
+from datetime import datetime
 
 database = sqlite3.connect("trains.db")
 cursorObj = database.cursor()
@@ -59,16 +59,109 @@ def getRoutesStartEnd(start, end, dateTime):
     out.sort(key=lambda x: x["dateAndTime"])
     return out
 
+def brukerhistorie_C(station_name, weekday):
+    query = '''
+    SELECT DISTINCT tr.routeID, tr.dateAndTime, tr.startOfRoute, tr.endOfRoute
+    FROM TrainRoute tr
+    JOIN StationsOnRoute sor ON tr.routeID = sor.routeID
+    WHERE sor.name = ? AND sor.weekday = ?
+    '''
+
+    cursorObj.execute(query, (station_name, weekday))
+    routes = cursorObj.fetchall()
+
+    database.close()
+
+    return routes
+
+
+def get_available_seats(route_id, date_time):
+
+    query = '''
+    SELECT c.cartsID, c.type, ts.sectionID, 
+    (CASE WHEN c.type = 'Chair' THEN ch.numberOfSeats ELSE s.numberOfBeds END) - COUNT(rs.ticketID) AS available_seats
+    FROM Carts c
+    JOIN Operator o ON c.operatorID = o.operatorID
+    JOIN TrainRoute tr ON o.routeID = tr.routeID
+    JOIN TrackSection ts ON tr.trackID = ts.trackID
+    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID AND ts.sectionID = rs.sectionID
+    WHERE tr.routeID = ? AND tr.dateAndTime = ?
+    GROUP BY c.cartsID, c.type, ts.sectionID
+    HAVING available_seats > 0
+    ORDER BY c.cartsID, ts.sectionID;
+    '''
+
+    cursorObj.execute(query, (route_id, date_time))
+    seats = cursorObj.fetchall()
+
+    database.close()
+
+    return seats
+
+def purchase_tickets(customer_id, order_id, tickets):
+
+    cursorObj.execute("INSERT INTO Orders (orderID, numberOfTickets, orderDateAndTime, customerID) VALUES (?, ?, ?, ?)", (order_id, len(tickets), datetime.now(), customer_id))
+
+    for ticket in tickets:
+        cursorObj.execute("INSERT INTO Ticket (ticketID, startLoc, endLoc, seatNr, orderID, routeID) VALUES (?, ?, ?, ?, ?, ?)", ticket)
+        cursorObj.execute("INSERT INTO ReservedSeat (ticketID, cartsID, sectionID) VALUES (?, ?, ?)", (ticket[0], ticket[4], ticket[5]))
+
+    database.commit()
+    database.close()
+
+if __name__ == "__main__":
+    route_id = int(input("Enter the route ID: "))
+    date_time = input("Enter the date and time (YYYY-MM-DD HH:MI:SS): ")
+
+    available_seats = get_available_seats(route_id, date_time)
+
+    if available_seats:
+        print("Available seats:")
+        print("CartsID | CartType | SectionID | AvailableSeats")
+        for seat in available_seats:
+            print(f"{seat[0]} | {seat[1]} | {seat[2]} | {seat[3]}")
+    else:
+        print("No available seats found for the given route and date.")
+
+    # User selects seats and provides customer_id and order_id
+    customer_id = 1  # Replace with the actual customer_id
+    order_id = 1  # Replace with the actual order_id
+    selected_tickets = [
+        (1, "StartLoc1", "EndLoc1", 1, 1, 1),  # Replace with actual ticket data (ticketID, startLoc, endLoc, seatNr, cartsID, sectionID)
+        (2, "StartLoc2", "EndLoc2", 2, 2, 1)  # Replace with actual ticket data (ticketID, startLoc, endLoc, seatNr, cartsID, sectionID)
+    ]
+
+    purchase_tickets(customer_id, order_id, selected_tickets)
+    print("Tickets purchased successfully.")
+
+
+
 
 def main():
     print("Velkommen til togbaneDB")
-    logIn = input("Log in eller registrer")
+    print("Trykk 'l' for login, eller 'r' for registrer: ")
+    logIn = input("Login eller registrer: r")
     if logIn == "l":
         signin()
     elif logIn == "r":
         signup()
 
     action = input("Hvilken brukerhistorie vil du gjennomføre a-h")
+
+    if (action == "c"):
+        station_name = input("Oppgi navnet på stasjonen du vil reise fra: ")
+        weekday = input("Oppgi ukedag du har lyst til å reise på, f.eks (Mandag, Tirsdag, osv.): ")
+
+        train_routes = brukerhistorie_C(station_name, weekday)
+
+        if train_routes:
+            print("Train routes passing through the station on the given weekday:")
+            print("RouteID | DateAndTime | StartOfRoute | EndOfRoute")
+            for route in train_routes:
+                print(f"{route[0]} | {route[1]} | {route[2]} | {route[3]}")
+        else:
+            print("No train routes found for the given station and weekday.")
+
     if (action == "d"):
         print("Gjennomfører brukerhistorie " + action)
         start = input("Fra stasjon: ")
@@ -78,4 +171,7 @@ def main():
         routes = getRoutesStartEnd(start, end, dateTime)
         for route in routes:
             print(route)
+
+    
+    
 main()
