@@ -1,5 +1,6 @@
 import sqlite3
 import datetime
+from datetime import date
 
 database = sqlite3.connect("trains.db")
 cursorObj = database.cursor()
@@ -35,15 +36,17 @@ def signup():
     database.commit()
 
 def getRoutesStartEnd(start, end, dateTime):
+    dateTime = datetime.datetime.strptime(dateTime, "%Y-%m-%d %H:%M:%S")
+
     sqlQuery = """
-        SELECT stationsOnRoute.routeID, stationsOnRoute.name, stationsOnRoute.arrivalTime, stationsOnRoute.departureTime
+        SELECT stationsOnRoute.routeID, stationsOnRoute.name, stationsOnRoute.arrivalTime, stationsOnRoute.departureTime, TrainRoute.dateAndTime
         FROM stationsOnRoute
         JOIN TrainRoute ON stationsOnRoute.routeID = TrainRoute.routeID
-        WHERE stationsOnRoute.name = %s AND TrainRoute.DateAndTime BETWEEN %s AND %s
+        WHERE stationsOnRoute.name = ? AND TrainRoute.DateAndTime BETWEEN ? AND ?
         """
-    cursorObj.execute(sqlQuery(start, dateTime.strftime("%m/%d/%Y, %H:%M:%S"), (dateTime.date() + datetime.timedelta(days=1)).strftime("%m/%d/%Y")))
+    cursorObj.execute(sqlQuery (start, dateTime.strftime("%Y/%m/%d, %H:%M:%S"), (dateTime.date() + datetime.timedelta(days=1)).strftime("%Y/%m/%d")))
     routesFromStart = cursorObj.fetchall()
-    cursorObj.execute(sqlQuery(end, dateTime.strftime("%m/%d/%Y, %H:%M:%S"), (dateTime.date() + datetime.timedelta(days=1)).strftime("%m/%d/%Y")))
+    cursorObj.execute(sqlQuery (end, dateTime.strftime("%Y/%m/%d, %H:%M:%S"), (dateTime.date() + datetime.timedelta(days=1)).strftime("%Y/%m/%d")))
     routesFromEnd = cursorObj.fetchall()
 
     validRoutes = []
@@ -59,6 +62,37 @@ def getRoutesStartEnd(start, end, dateTime):
     out.sort(key=lambda x: x["dateAndTime"])
     return out
 
+def getFutureOrders():
+    epost = input("Skriv inn mailen din : ")
+    query = """SELECT Orders.orderID, Orders.numberOfTickets, Orders.orderDateAndTime, TrainRoute.dateAndTime, TrainRoute.startOfRoute, TrainRoute.endOfRoute, Operator.name, Carts.type, ReservedSeat.sectionID, ReservedSeat.ticketID
+            FROM Orders
+            INNER JOIN Ticket ON Orders.orderID = Ticket.orderID
+            INNER JOIN TrainRoute ON Ticket.routeID = TrainRoute.routeID
+            INNER JOIN Operator ON TrainRoute.routeID = Operator.routeID
+            INNER JOIN Carts ON Operator.operatorID = Carts.operatorID
+            INNER JOIN ReservedSeat ON Ticket.ticketID = ReservedSeat.ticketID
+            INNER JOIN SectionStation ON ReservedSeat.sectionID = SectionStation.sectionID
+            INNER JOIN Station ON SectionStation.name = Station.name
+            WHERE Orders.customerID = (SELECT customerID FROM Customer WHERE email = ?)
+            AND TrainRoute.dateAndTime > ?
+            ORDER BY TrainRoute.dateAndTime ASC"""
+
+    today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    results = cursorObj.execute(query, (epost, today)).fetchall()
+
+    for row in results:
+        print("Order ID:", row[0])
+        print("Number of Tickets:", row[1])
+        print("Order Date and Time:", row[2])
+        print("Trip Date and Time:", row[3])
+        print("Start Station:", row[4])
+        print("End Station:", row[5])
+        print("Operator Name:", row[6])
+        print("Cart Type:", row[7])
+        print("Section ID:", row[8])
+        print("Ticket ID:", row[9])
+        print("--------------------------")
+
 
 def main():
     print("Velkommen til togbaneDB")
@@ -69,13 +103,14 @@ def main():
         signup()
 
     action = input("Hvilken brukerhistorie vil du gjennomføre a-h")
+    print("Gjennomfører brukerhistorie " + action)
     if (action == "d"):
-        print("Gjennomfører brukerhistorie " + action)
         start = input("Fra stasjon: ")
         end = input("Til stasjon: ")
-        dateAndTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
-        dateTime = datetime.datetime.strptime(dateAndTime, "%Y-%m-%d %H:%M:%S")
+        dateTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
         routes = getRoutesStartEnd(start, end, dateTime)
         for route in routes:
             print(route)
+    elif (action == "h"):
+        getFutureOrders()
 main()
