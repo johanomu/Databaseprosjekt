@@ -12,8 +12,8 @@ fetch(database)
 
 def signin():
     print("Login")
-    name = input("Skriv inn navn")
-    password = input("Skriv inn passord")
+    name = input("Skriv inn navn: ")
+    password = input("Skriv inn passord: ")
     customer = cursorObj.execute("SELECT passord FROM Customer WHERE name = '{}'".format(name))
     for i in customer.fetchall():
         if i[0] == password:
@@ -23,17 +23,18 @@ def signin():
 
 def signup():
     print("Lag bruker")
-    name = input("Skriv inn navn")
-    epost = input("Skriv inn epost")
-    tlf = input("Skriv inn tlf")
-    password = input("Skriv inn passord")
+    name = input("Skriv inn navn: ")
+    epost = input("Skriv inn epost: ")
+    tlf = input("Skriv inn tlf: ")
+    password = input("Skriv inn passord: ")
     emailCheck = cursorObj.execute("SELECT email FROM Customer")
     for i in emailCheck.fetchall():
-        if i[0] == name:
+        if i[0] == epost:
             print("Epost eksisterer allerede")
             return False
     cursorObj.execute("INSERT INTO Customer (name, phoneNr, email, password) VALUES ('{}', '{}', '{}', '{}')".format(name, tlf, epost, password))
     database.commit()
+    print("Bruker oprettet")
 
 def getRoutesStartEnd(start, end, dateTime):
     dateTime = datetime.datetime.strptime(dateTime, "%Y-%m-%d %H:%M:%S")
@@ -44,9 +45,9 @@ def getRoutesStartEnd(start, end, dateTime):
         JOIN TrainRoute ON stationsOnRoute.routeID = TrainRoute.routeID
         WHERE stationsOnRoute.name = ? AND TrainRoute.DateAndTime BETWEEN ? AND ?
         """
-    cursorObj.execute(sqlQuery (start, dateTime.strftime("%Y/%m/%d, %H:%M:%S"), (dateTime.date() + datetime.timedelta(days=1)).strftime("%Y/%m/%d")))
+    cursorObj.execute(sqlQuery, (start, dateTime, (dateTime + datetime.timedelta(days=1))))
     routesFromStart = cursorObj.fetchall()
-    cursorObj.execute(sqlQuery (end, dateTime.strftime("%Y/%m/%d, %H:%M:%S"), (dateTime.date() + datetime.timedelta(days=1)).strftime("%Y/%m/%d")))
+    cursorObj.execute(sqlQuery, (end, dateTime, (dateTime + datetime.timedelta(days=1))))
     routesFromEnd = cursorObj.fetchall()
 
     validRoutes = []
@@ -59,11 +60,11 @@ def getRoutesStartEnd(start, end, dateTime):
     for route in validRoutes:
         cursorObj.execute("SELECT * FROM TrainRoute WHERE TrainRoute.routeID = %s"(route))
         out.append(cursorObj.fetchall())
-    out.sort(key=lambda x: x["dateAndTime"])
+    out.sort(key=lambda x: x[0][3])
     return out
 
 def getFutureOrders():
-    epost = input("Skriv inn mailen din : ")
+    epost = input("Skriv inn mailen din: ")
     query = """SELECT Orders.orderID, Orders.numberOfTickets, Orders.orderDateAndTime, TrainRoute.dateAndTime, TrainRoute.startOfRoute, TrainRoute.endOfRoute, Operator.name, Carts.type, ReservedSeat.sectionID, ReservedSeat.ticketID
             FROM Orders
             INNER JOIN Ticket ON Orders.orderID = Ticket.orderID
@@ -96,13 +97,13 @@ def getFutureOrders():
 
 def main():
     print("Velkommen til togbaneDB")
-    logIn = input("Log in eller registrer")
+    logIn = input("Log in eller registrer: ")
     if logIn == "l":
         signin()
     elif logIn == "r":
         signup()
 
-    action = input("Hvilken brukerhistorie vil du gjennomføre a-h")
+    action = input("Hvilken brukerhistorie vil du gjennomføre a-h: ")
     print("Gjennomfører brukerhistorie " + action)
     if (action == "d"):
         start = input("Fra stasjon: ")
