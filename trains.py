@@ -2,7 +2,7 @@ import sqlite3
 import datetime
 from datetime import date
 
-database = sqlite3.connect("trains.db")
+database = sqlite3.connect("lastTestDb.db")
 cursorObj = database.cursor()
 epost = ""
 
@@ -98,15 +98,17 @@ def getFutureOrders():
         print("Ticket ID:", row[9])
         print("--------------------------")
 
-def brukerhistorie_C(station_name, weekday):
+def brukerhistorie_C(station, weekday):
     query = '''
-    SELECT DISTINCT tr.routeID, tr.dateAndTime, tr.startOfRoute, tr.endOfRoute
+    SELECT tr.routeID, tr.dateAndTime, tr.weekday, v_start.name AS start_station, v_end.name AS end_station
     FROM TrainRoute tr
-    JOIN StationsOnRoute sor ON tr.routeID = sor.routeID
-    WHERE sor.name = ? AND sor.weekday = ?
+    JOIN Visits v ON tr.trackID = v.trackID
+    JOIN Visits v_start ON tr.trackID = v_start.trackID AND v_start.departureTime IS NULL
+    JOIN Visits v_end ON tr.trackID = v_end.trackID AND v_end.arrivalTime IS NULL
+    WHERE v.name = ? AND tr.weekday = ?
     '''
 
-    cursorObj.execute(query, (station_name, weekday))
+    cursorObj.execute(query, (station, weekday))
     routes = cursorObj.fetchall()
 
     database.close()
@@ -214,16 +216,15 @@ def main():
     print("----------------------------------------")
 
     if (action == "c"):
-        station_name = input("Oppgi navnet på stasjonen du vil reise fra: ")
-        weekday = input("Oppgi ukedag du har lyst til å reise på, f.eks (Mandag, Tirsdag, osv.): ")
+        station = input("Oppgi navnet på stasjonen du vil reise fra: ")
+        weekday = input.lower("Oppgi ukedag du har lyst til å reise på, f.eks (Mandag, Tirsdag, osv.): ")
 
-        train_routes = brukerhistorie_C(station_name, weekday)
+        train_routes = brukerhistorie_C(station, weekday)
 
         if train_routes:
-            print("Train routes passing through the station on the given weekday:")
-            print("RouteID | DateAndTime | StartOfRoute | EndOfRoute")
+            print(f"Togruter for {station} på {weekday}:")
             for route in train_routes:
-                print(f"{route[0]} | {route[1]} | {route[2]} | {route[3]}")
+                print(f"Rutenummer: {route[0]}, Dato og tidspunkt: {route[1]}, Startstasjon: {route[3]}, Endestasjon: {route[4]}")
         else:
             print("No train routes found for the given station and weekday.")
 
