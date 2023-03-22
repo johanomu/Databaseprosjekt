@@ -217,7 +217,8 @@ def main():
 
     if (action == "c"):
         station = input("Oppgi navnet på stasjonen du vil reise fra: ")
-        weekday = input.lower("Oppgi ukedag du har lyst til å reise på, f.eks (Mandag, Tirsdag, osv.): ")
+        weekday1 = input("Oppgi ukedag du har lyst til å reise på, f.eks (Mandag, Tirsdag, osv.): ")
+        weekday = weekday1.lower()
 
         train_routes = brukerhistorie_C(station, weekday)
 
