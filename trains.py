@@ -36,18 +36,22 @@ def signup():
     database.commit()
     print("Bruker oprettet")
 
-def getRoutesStartEnd(start, end, dateTime):
+def getRoutesStartEnd():
+    start = input("Fra stasjon: ")
+    end = input("Til stasjon: ")
+    dateTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
     dateTime = datetime.datetime.strptime(dateTime, "%Y-%m-%d %H:%M:%S")
 
     sqlQuery = """
-        SELECT stationsOnRoute.routeID, stationsOnRoute.name, stationsOnRoute.arrivalTime, stationsOnRoute.departureTime, TrainRoute.dateAndTime
-        FROM stationsOnRoute
-        JOIN TrainRoute ON stationsOnRoute.routeID = TrainRoute.routeID
-        WHERE stationsOnRoute.name = ? AND TrainRoute.DateAndTime BETWEEN ? AND ?
+        SELECT Visits.trackID, Visits.name, Vsits.arrivalTime, Visits.departureTime, TrainRoute.dateAndTime
+        FROM Tracks
+        JOIN Tracks ON Visits.trackID = Tracks.trackID
+        JOIN Visits ON TrainRoute
+        WHERE Visits.name = ? AND TrainRoute.DateAndTime BETWEEN ? AND ?
         """
-    cursorObj.execute(sqlQuery, (start, dateTime, (dateTime + datetime.timedelta(days=1))))
+    cursorObj.execute(sqlQuery, (start, dateTime.time(), (dateTime + datetime.timedelta(days=1))))
     routesFromStart = cursorObj.fetchall()
-    cursorObj.execute(sqlQuery, (end, dateTime, (dateTime + datetime.timedelta(days=1))))
+    cursorObj.execute(sqlQuery, (end, dateTime.time(), (dateTime + datetime.timedelta(days=1))))
     routesFromEnd = cursorObj.fetchall()
 
     validRoutes = []
@@ -105,11 +109,9 @@ def main():
 
     action = input("Hvilken brukerhistorie vil du gjennomføre a-h: ")
     print("Gjennomfører brukerhistorie " + action)
+    print("----------------------------------------")
     if (action == "d"):
-        start = input("Fra stasjon: ")
-        end = input("Til stasjon: ")
-        dateTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
-        routes = getRoutesStartEnd(start, end, dateTime)
+        routes = getRoutesStartEnd()
         for route in routes:
             print(route)
     elif (action == "h"):
