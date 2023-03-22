@@ -2,7 +2,7 @@ import sqlite3
 import datetime
 from datetime import date
 
-database = sqlite3.connect("trains.db")
+database = sqlite3.connect("lastTestDb.db")
 cursorObj = database.cursor()
 epost = ""
 
@@ -43,11 +43,11 @@ def getRoutesStartEnd():
     dateTime = datetime.datetime.strptime(dateTime, "%Y-%m-%d %H:%M:%S")
 
     sqlQuery = """
-        SELECT Visits.trackID, Visits.name, Vsits.arrivalTime, Visits.departureTime, TrainRoute.dateAndTime
-        FROM Tracks
+        SELECT Visits.trackID, Visits.name, Visits.arrivalTime, Visits.departureTime
+        FROM Visits
         JOIN Tracks ON Visits.trackID = Tracks.trackID
-        JOIN Visits ON TrainRoute
-        WHERE Visits.name = ? AND TrainRoute.DateAndTime BETWEEN ? AND ?
+        JOIN TrainRoute ON TrainRoute.routeID = Tracks.routeID
+        WHERE Visits.name = ? AND TrainRoute.dateAndTime BETWEEN ? AND ?
         """
     cursorObj.execute(sqlQuery, (start, dateTime.time(), (dateTime + datetime.timedelta(days=1))))
     routesFromStart = cursorObj.fetchall()
