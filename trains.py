@@ -109,19 +109,43 @@ def purchase_tickets(customer_id, order_id, tickets):
     database.commit()
     database.close()
 
-if __name__ == "__main__":
-    route_id = int(input("Enter the route ID: "))
-    date_time = input("Enter the date and time (YYYY-MM-DD HH:MI:SS): ")
+def get_route_ids(start_station, end_station):
+    query = '''
+    SELECT tr.routeID
+    FROM TrainRoute tr
+    JOIN StationsOnRoute sor_start ON tr.routeID = sor_start.routeID
+    JOIN StationsOnRoute sor_end ON tr.routeID = sor_end.routeID
+    WHERE sor_start.name = ? AND sor_end.name = ?
+    '''
 
-    available_seats = get_available_seats(route_id, date_time)
+    cursorObj.execute(query, (start_station, end_station))
+    route_ids = [row[0] for row in cursorObj.fetchall()]
 
-    if available_seats:
-        print("Available seats:")
-        print("CartsID | CartType | SectionID | AvailableSeats")
-        for seat in available_seats:
-            print(f"{seat[0]} | {seat[1]} | {seat[2]} | {seat[3]}")
+    database.close()
+
+    return route_ids
+
+def brukerhistorie_G():
+    start_station = input("Oppgi startstasjon: ")
+    end_station = input("Oppgi endestasjon: ")
+    date_time = input("Oppgi dato og tidspunkt for reisen (YYYY-MM-DD HH:MI:SS): ")
+
+    route_ids = get_route_ids(start_station, end_station)
+
+    if not route_ids:
+        print("Finner ingen rute for denne start- og endestasjonen")
     else:
-        print("No available seats found for the given route and date.")
+        for route_id in route_ids:
+            available_seats = get_available_seats(route_id, date_time)
+
+            if available_seats:
+                print(f"Ledige seter for Route ID {route_id}:")
+                print("CartsID | CartType | SectionID | AvailableSeats")
+                for seat in available_seats:
+                    print(f"{seat[0]} | {seat[1]} | {seat[2]} | {seat[3]}")
+            else:
+                print(f"Ingen ledige seter funnet for Route ID {route_id} og den oppgitte dato.")
+
 
     # User selects seats and provides customer_id and order_id
     customer_id = 1  # Replace with the actual customer_id
