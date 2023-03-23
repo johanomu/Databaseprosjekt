@@ -39,33 +39,26 @@ def signup():
 def getRoutesStartEnd():
     start = input("Fra stasjon: ")
     end = input("Til stasjon: ")
-    dateTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
-    dateTime = datetime.datetime.strptime(dateTime, "%Y-%m-%d %H:%M:%S")
+    dateAndTime = input("Dato og tid (YYYY-MM-DD HH:MM): ")
+    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M')
 
     sqlQuery = """
-        SELECT Visits.trackID, Visits.name, Visits.arrivalTime, Visits.departureTime
+        SELECT DISTINCT TrainRoute.routeID, TrainRoute.trackID, TrainRoute.dateAndTime, TrainRoute.weekday
         FROM Visits
         JOIN Tracks ON Visits.trackID = Tracks.trackID
-        JOIN TrainRoute ON TrainRoute.routeID = Tracks.routeID
-        WHERE Visits.name = ? AND TrainRoute.dateAndTime BETWEEN ? AND ?
+        JOIN TrainRoute ON Tracks.trackID = TrainRoute.trackID
+        WHERE (Visits.name = ? OR Visits.name = ?) AND TrainRoute.dateAndTime BETWEEN ? AND ?
+        ORDER BY TrainRoute.dateAndTime ASC
         """
-    cursorObj.execute(sqlQuery, (start, dateTime.time(), (dateTime + datetime.timedelta(days=1))))
-    routesFromStart = cursorObj.fetchall()
-    cursorObj.execute(sqlQuery, (end, dateTime.time(), (dateTime + datetime.timedelta(days=1))))
-    routesFromEnd = cursorObj.fetchall()
+    cursorObj.execute(sqlQuery, (start, end, dateTime.strftime('%Y-%m-%d %H:%M'), (dateTime + datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M')))
+    routes = cursorObj.fetchall()
 
-    validRoutes = []
-    for startRoute in routesFromStart:
-        for endRoute in routesFromEnd:
-            if startRoute[0] == endRoute[0]:
-                if startRoute[2] < dateTime.time() and endRoute[3] > dateTime.time():
-                    validRoutes.append(startRoute[0])
-    out = []
-    for route in validRoutes:
-        cursorObj.execute("SELECT * FROM TrainRoute WHERE TrainRoute.routeID = %s"(route))
-        out.append(cursorObj.fetchall())
-    out.sort(key=lambda x: x[0][3])
-    return out
+    if len(routes) == 0:
+        print("Ingen ruter funnet.")
+    else:
+        print("Ruter funnet:")
+        for route in routes:
+            print(f"Rute ID: {route[0]}, Kjører på bane: {route[1]} Tidspunkt: {route[2]}, Dag: {route[3]}, Fra {start}, Til {end}")
 
 def getFutureOrders():
     epost = input("Skriv inn mailen din: ")
@@ -111,9 +104,7 @@ def main():
     print("Gjennomfører brukerhistorie " + action)
     print("----------------------------------------")
     if (action == "d"):
-        routes = getRoutesStartEnd()
-        for route in routes:
-            print(route)
+        getRoutesStartEnd()
     elif (action == "h"):
         getFutureOrders()
 main()
