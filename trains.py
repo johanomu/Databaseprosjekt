@@ -61,36 +61,29 @@ def getRoutesStartEnd():
             print(f"Rute ID: {route[0]}, Kjører på bane: {route[1]} Tidspunkt: {route[2]}, Dag: {route[3]}, Fra {start}, Til {end}")
 
 def getFutureOrders():
-    epost = input("Skriv inn mailen din: ")
-    query = """SELECT Orders.orderID, Orders.numberOfTickets, Orders.orderDateAndTime, TrainRoute.dateAndTime, TrainRoute.startOfRoute, TrainRoute.endOfRoute, Operator.name, Carts.type, ReservedSeat.sectionID, ReservedSeat.ticketID
-            FROM Orders
-            INNER JOIN Ticket ON Orders.orderID = Ticket.orderID
-            INNER JOIN TrainRoute ON Ticket.routeID = TrainRoute.routeID
-            INNER JOIN Operator ON TrainRoute.routeID = Operator.routeID
-            INNER JOIN Carts ON Operator.operatorID = Carts.operatorID
-            INNER JOIN ReservedSeat ON Ticket.ticketID = ReservedSeat.ticketID
-            INNER JOIN SectionStation ON ReservedSeat.sectionID = SectionStation.sectionID
-            INNER JOIN Station ON SectionStation.name = Station.name
-            WHERE Orders.customerID = (SELECT customerID FROM Customer WHERE email = ?)
-            AND TrainRoute.dateAndTime > ?
-            ORDER BY TrainRoute.dateAndTime ASC"""
+    email = input("Skriv inn mailen din: ")
+    dateAndTime = input("Fra dato: ")
+    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M')
+    
+    sqlQuery = """
+    SELECT * FROM Customer 
+    JOIN Orders ON Customer.customerID = Orders.customerID
+    WHERE Customer.email = ? AND Orders.orderDateAndTime > ?
+    """
 
-    today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    results = cursorObj.execute(query, (epost, today)).fetchall()
-
-    for row in results:
-        print("Order ID:", row[0])
-        print("Number of Tickets:", row[1])
-        print("Order Date and Time:", row[2])
-        print("Trip Date and Time:", row[3])
-        print("Start Station:", row[4])
-        print("End Station:", row[5])
-        print("Operator Name:", row[6])
-        print("Cart Type:", row[7])
-        print("Section ID:", row[8])
-        print("Ticket ID:", row[9])
-        print("--------------------------")
-
+    cursorObj.execute(sqlQuery, (email, dateTime,))
+    orders = cursorObj.fetchall()
+    
+    for order in orders:
+        cursorObj.execute("SELECT Ticket.startLoc, Ticket.endLoc, Ticket.seatNr FROM Ticket WHERE Ticket.orderID = ?", (order[0],))
+        tickets = cursorObj.fetchall()
+        print(f"Ordre ID: {order[0]}")
+        print(f"Dato: {order[1]}")
+        print(f"Total pris: {order[2]}")
+        print("Biletter:")
+        for ticket in tickets:
+            print(f"Fra: {ticket[0]}, Til: {ticket[1]}, Sete nummer: {ticket[2]}")
+        print("------------------------------------------")
 
 def main():
     print("Velkommen til togbaneDB")
