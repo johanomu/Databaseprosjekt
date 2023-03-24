@@ -14,12 +14,14 @@ def signin():
     print("Login")
     name = input("Skriv inn navn: ")
     password = input("Skriv inn passord: ")
-    customer = cursorObj.execute("SELECT passord FROM Customer WHERE name = '{}'".format(name))
+    customer = cursorObj.execute("SELECT password FROM Customer WHERE name = '{}'".format(name))
     for i in customer.fetchall():
         if i[0] == password:
             print("Du er logget inn")
             return True
     print("Feil navn eller passord")
+
+customerID = signin()
 
 def signup():
     print("Lag bruker")
@@ -116,89 +118,60 @@ def brukerhistorie_C(station, weekday):
     return routes
 
 
-def get_available_seats(route_id, date_time):
-
+def get_available_seats(start_station, end_station, date_time):
     query = '''
-    SELECT c.cartsID, c.type, ts.sectionID, 
-    (CASE WHEN c.type = 'Chair' THEN ch.numberOfSeats ELSE s.numberOfBeds END) - COUNT(rs.ticketID) AS available_seats
-    FROM Carts c
-    JOIN Operator o ON c.operatorID = o.operatorID
-    JOIN TrainRoute tr ON o.routeID = tr.routeID
-    JOIN TrackSection ts ON tr.trackID = ts.trackID
-    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID AND ts.sectionID = rs.sectionID
-    WHERE tr.routeID = ? AND tr.dateAndTime = ?
-    GROUP BY c.cartsID, c.type, ts.sectionID
-    HAVING available_seats > 0
-    ORDER BY c.cartsID, ts.sectionID;
-    '''
-
-    cursorObj.execute(query, (route_id, date_time))
-    seats = cursorObj.fetchall()
-
-    database.close()
-
-    return seats
-
-def purchase_tickets(customer_id, order_id, tickets):
-
-    cursorObj.execute("INSERT INTO Orders (orderID, numberOfTickets, orderDateAndTime, customerID) VALUES (?, ?, ?, ?)", (order_id, len(tickets), datetime.now(), customer_id))
-
-    for ticket in tickets:
-        cursorObj.execute("INSERT INTO Ticket (ticketID, startLoc, endLoc, seatNr, orderID, routeID) VALUES (?, ?, ?, ?, ?, ?)", ticket)
-        cursorObj.execute("INSERT INTO ReservedSeat (ticketID, cartsID, sectionID) VALUES (?, ?, ?)", (ticket[0], ticket[4], ticket[5]))
-
-    database.commit()
-    database.close()
-
-def get_route_ids(start_station, end_station):
-    query = '''
-    SELECT tr.routeID
+    SELECT tr.routeID, c.cartsID, c.type, ch.numberOfSeats - COUNT(rs.ticketID) AS available_seats
     FROM TrainRoute tr
-    JOIN StationsOnRoute sor_start ON tr.routeID = sor_start.routeID
-    JOIN StationsOnRoute sor_end ON tr.routeID = sor_end.routeID
-    WHERE sor_start.name = ? AND sor_end.name = ?
+    JOIN CartsOnRoute cor ON tr.routeID = cor.routeID
+    JOIN Carts c ON cor.cartsID = c.cartsID
+    JOIN Chair ch ON c.cartsID = ch.chairCartsID
+    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID
+    WHERE tr.routeID IN (
+        SELECT DISTINCT tr.routeID
+        FROM TrainRoute tr
+        JOIN Visits v_start ON tr.trackID = v_start.trackID
+        JOIN Visits v_end ON tr.trackID = v_end.trackID
+        WHERE v_start.name = ? AND v_end.name = ? AND v_start.departureTime < v_end.arrivalTime
+    )
+    AND tr.dateAndTime >= ? AND tr.dateAndTime < date(?, '+1 day')
+    GROUP BY tr.routeID, c.cartsID
+    HAVING available_seats > 0
     '''
+    cursorObj.execute(query, (start_station, end_station, date_time, date_time))
+    available_seats = cursorObj.fetchall()
+    
+    return available_seats
 
-    cursorObj.execute(query, (start_station, end_station))
-    route_ids = [row[0] for row in cursorObj.fetchall()]
-
-    database.close()
-
-    return route_ids
+def purchase_ticket(customer_id, route_id, start_station, end_station, carts_id, seat_nr):
+    query = '''
+    INSERT INTO Ticket (customerID, routeID, startLoc, endLoc, seatNr)
+    VALUES (?, ?, ?, ?, ?)
+    '''
+    cursorObj.execute(query, (customer_id, route_id, start_station, end_station, seat_nr))
+    database.commit()
+    ticket_id = cursorObj.lastrowid
+    
+    return ticket_id
 
 def brukerhistorie_G():
-    start_station = input("Oppgi startstasjon: ")
-    end_station = input("Oppgi endestasjon: ")
-    date_time = input("Oppgi dato og tidspunkt for reisen (YYYY-MM-DD HH:MI:SS): ")
+    start_station = input("Enter the start station: ")
+    end_station = input("Enter the end station: ")
+    date_time = input("Enter the date and time (YYYY-MM-DD HH:MI:SS): ")
+    customer_id = customerID
 
-    route_ids = get_route_ids(start_station, end_station)
-
-    if not route_ids:
-        print("Finner ingen rute for denne start- og endestasjonen")
+    available_seats = get_available_seats(start_station, end_station, date_time)
+    if not available_seats:
+        print("No available seats found.")
     else:
-        for route_id in route_ids:
-            available_seats = get_available_seats(route_id, date_time)
-
-            if available_seats:
-                print(f"Ledige seter for Route ID {route_id}:")
-                print("CartsID | CartType | SectionID | AvailableSeats")
-                for seat in available_seats:
-                    print(f"{seat[0]} | {seat[1]} | {seat[2]} | {seat[3]}")
-            else:
-                print(f"Ingen ledige seter funnet for Route ID {route_id} og den oppgitte dato.")
-
-
-    # User selects seats and provides customer_id and order_id
-    customer_id = 1  # Replace with the actual customer_id
-    order_id = 1  # Replace with the actual order_id
-    selected_tickets = [
-        (1, "StartLoc1", "EndLoc1", 1, 1, 1),  # Replace with actual ticket data (ticketID, startLoc, endLoc, seatNr, cartsID, sectionID)
-        (2, "StartLoc2", "EndLoc2", 2, 2, 1)  # Replace with actual ticket data (ticketID, startLoc, endLoc, seatNr, cartsID, sectionID)
-    ]
-
-    purchase_tickets(customer_id, order_id, selected_tickets)
-    print("Tickets purchased successfully.")
-
+        for route_id, carts_id, cart_type, available_seat in available_seats:
+            print(f"Route ID: {route_id}, Cart ID: {carts_id}, Cart Type: {cart_type}, Available Seats: {available_seat}")
+        
+        selected_route_id = int(input("Enter the Route ID you want to book: "))
+        selected_carts_id = int(input("Enter the Cart ID you want to book: "))
+        selected_seat_nr = int(input("Enter the seat number you want to book: "))
+        
+        ticket_id = purchase_ticket(customer_id, selected_route_id, start_station, end_station, selected_carts_id, selected_seat_nr)
+        print(f"Ticket successfully booked. Your ticket ID is: {ticket_id}")
 
 
 
@@ -229,10 +202,13 @@ def main():
         else:
             print("No train routes found for the given station and weekday.")
 
-    if (action == "d"):
+    elif (action == "d"):
         routes = getRoutesStartEnd()
         for route in routes:
             print(route)
+
+    elif (action == "g"):
+        brukerhistorie_G()
     elif (action == "h"):
         getFutureOrders()
 main()
