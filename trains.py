@@ -137,9 +137,13 @@ def get_available_seats(start_station, end_station, date_time):
     GROUP BY tr.routeID, c.cartsID
     HAVING available_seats > 0
     '''
+    print(f"Executing query: {query}")
+    print(f"Start station: {start_station}, End station: {end_station}, Date time: {date_time}")
+
     cursorObj.execute(query, (start_station, end_station, date_time, date_time))
     available_seats = cursorObj.fetchall()
-    
+    print(f"Available seats: {available_seats}")
+
     return available_seats
 
 def purchase_ticket(customer_id, route_id, start_station, end_station, carts_id, seat_nr):
@@ -152,6 +156,14 @@ def purchase_ticket(customer_id, route_id, start_station, end_station, carts_id,
     ticket_id = cursorObj.lastrowid
     
     return ticket_id
+
+def reserve_seat(ticketID, cartsID, sectionID):
+    cursorObj.execute(f"INSERT INTO ReservedSeat (ticketID, cartsID, sectionID) VALUES (?, ?, ?)", (ticketID, cartsID, sectionID))
+    database.commit()
+
+def add_ticket(startLoc, endLoc, seatNr, orderID, routeID):
+    cursorObj.execute(f"INSERT INTO Ticket (startLoc, endLoc, seatNr, orderID, routeID) VALUES (?, ?, ?, ?, ?)", (startLoc, endLoc, seatNr, orderID, routeID))
+    database.commit()
 
 def brukerhistorie_G():
     start_station = input("Enter the start station: ")
