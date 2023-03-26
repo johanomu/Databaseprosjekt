@@ -42,64 +42,55 @@ def signup():
 def getRoutesStartEnd():
     start = input("Fra stasjon: ")
     end = input("Til stasjon: ")
-    dateTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
-    dateTime = datetime.datetime.strptime(dateTime, "%Y-%m-%d %H:%M:%S")
+    dateAndTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
+    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
 
     sqlQuery = """
-        SELECT Visits.trackID, Visits.name, Visits.arrivalTime, Visits.departureTime
-        FROM Visits
-        JOIN Tracks ON Visits.trackID = Tracks.trackID
-        JOIN TrainRoute ON TrainRoute.routeID = Tracks.routeID
-        WHERE Visits.name = ? AND TrainRoute.dateAndTime BETWEEN ? AND ?
+        SELECT DISTINCT TrainRoute.routeID, TrainRoute.trackID, TrainRoute.dateAndTime, TrainRoute.weekday
+        FROM Visits AS v1
+        JOIN Tracks AS t1 ON v1.trackID = t1.trackID
+        JOIN Visits AS v2 ON v1.trackID = v2.trackID
+        JOIN Tracks AS t2 ON v2.trackID = t2.trackID
+        JOIN TrainRoute ON t1.trackID = TrainRoute.trackID
+        WHERE v1.name = ? AND v2.name = ? AND TrainRoute.dateAndTime BETWEEN ? AND ?
+        ORDER BY TrainRoute.dateAndTime ASC
         """
-    cursorObj.execute(sqlQuery, (start, dateTime.time(), (dateTime + datetime.timedelta(days=1))))
-    routesFromStart = cursorObj.fetchall()
-    cursorObj.execute(sqlQuery, (end, dateTime.time(), (dateTime + datetime.timedelta(days=1))))
-    routesFromEnd = cursorObj.fetchall()
+    cursorObj.execute(sqlQuery, (start, end, dateTime.strftime('%Y-%m-%d %H:%M:%S'), (dateTime + datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S')))
+    routes = cursorObj.fetchall()
+    print("------------------------------------")
+    if len(routes) == 0:
+        print("Ingen ruter funnet.")
+    else:
+        print("Ruter funnet:")
+        for route in routes:
+            print(f"Rute ID: {route[0]}, Kjører på bane: {route[1]} Tidspunkt: {route[2]}, Dag: {route[3]}, Fra {start}, Til {end}")
 
-    validRoutes = []
-    for startRoute in routesFromStart:
-        for endRoute in routesFromEnd:
-            if startRoute[0] == endRoute[0]:
-                if startRoute[2] < dateTime.time() and endRoute[3] > dateTime.time():
-                    validRoutes.append(startRoute[0])
-    out = []
-    for route in validRoutes:
-        cursorObj.execute("SELECT * FROM TrainRoute WHERE TrainRoute.routeID = %s"(route))
-        out.append(cursorObj.fetchall())
-    out.sort(key=lambda x: x[0][3])
-    return out
 
 def getFutureOrders():
-    epost = input("Skriv inn mailen din: ")
-    query = """SELECT Orders.orderID, Orders.numberOfTickets, Orders.orderDateAndTime, TrainRoute.dateAndTime, TrainRoute.startOfRoute, TrainRoute.endOfRoute, Operator.name, Carts.type, ReservedSeat.sectionID, ReservedSeat.ticketID
-            FROM Orders
-            INNER JOIN Ticket ON Orders.orderID = Ticket.orderID
-            INNER JOIN TrainRoute ON Ticket.routeID = TrainRoute.routeID
-            INNER JOIN Operator ON TrainRoute.routeID = Operator.routeID
-            INNER JOIN Carts ON Operator.operatorID = Carts.operatorID
-            INNER JOIN ReservedSeat ON Ticket.ticketID = ReservedSeat.ticketID
-            INNER JOIN SectionStation ON ReservedSeat.sectionID = SectionStation.sectionID
-            INNER JOIN Station ON SectionStation.name = Station.name
-            WHERE Orders.customerID = (SELECT customerID FROM Customer WHERE email = ?)
-            AND TrainRoute.dateAndTime > ?
-            ORDER BY TrainRoute.dateAndTime ASC"""
+    email = input("Skriv inn mailen din: ")
+    dateAndTime = input("Fra dato: ")
+    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
+    
+    sqlQuery = """
+    SELECT * FROM Customer 
+    JOIN Orders ON Customer.customerID = Orders.customerID
+    WHERE Customer.email = ? AND Orders.orderDateAndTime > ?
+    """
 
-    today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    results = cursorObj.execute(query, (epost, today)).fetchall()
+    cursorObj.execute(sqlQuery, (email, dateTime,))
+    orders = cursorObj.fetchall()
 
-    for row in results:
-        print("Order ID:", row[0])
-        print("Number of Tickets:", row[1])
-        print("Order Date and Time:", row[2])
-        print("Trip Date and Time:", row[3])
-        print("Start Station:", row[4])
-        print("End Station:", row[5])
-        print("Operator Name:", row[6])
-        print("Cart Type:", row[7])
-        print("Section ID:", row[8])
-        print("Ticket ID:", row[9])
-        print("--------------------------")
+    print("-----------Dine fremtidige ordre-------------")
+    for order in orders:
+        cursorObj.execute("SELECT Ticket.startLoc, Ticket.endLoc, Ticket.seatNr FROM Ticket WHERE Ticket.orderID = ?", (order[5],))
+        tickets = cursorObj.fetchall()
+        print(f"Ordre ID: {order[5]}")
+        print(f"Dato: {order[7]}")
+        print(f"Antall biletter: {order[6]}")
+        print("Biletter:")
+        for ticket in tickets:
+            print(f"    Fra: {ticket[0]}, Til: {ticket[1]}, Sete nummer: {ticket[2]}")
+        print("------------------------------------------")
 
 def brukerhistorie_C(station, weekday):
     query = '''
@@ -313,8 +304,6 @@ def main():
 
     elif (action == "d"):
         routes = getRoutesStartEnd()
-        for route in routes:
-            print(route)
 
     elif (action == "g"):
         brukerhistorie_G()
