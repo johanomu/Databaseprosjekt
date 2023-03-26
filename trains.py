@@ -187,61 +187,9 @@ def get_section_ids(start_station, end_station):
 
     return section_ids
 
-def purchase_ticket(route_id, cart_id, seat_nr, user_id, section_ids):
-    
-    # Insert a new ticket into the Ticket table
-    insert_ticket_query = "INSERT INTO Tickets (customerID) VALUES (?)"
-    cursorObj.execute(insert_ticket_query, (user_id,))
-
-    # Get the ID of the inserted ticket
-    ticket_id = cursorObj.lastrowid
-
-    # Insert a new reserved seat into the ReservedSeat table for each section
-    for section_id in section_ids:
-        insert_reserved_seat_query = "INSERT INTO ReservedSeat (ticketID, cartsID, sectionID) VALUES (?, ?, ?)"
-        cursorObj.execute(insert_reserved_seat_query, (ticket_id, cart_id, section_id))
-
-    # Commit the changes
-    database.commit()
-
-    
-    print(f"Successfully purchased ticket with Ticket ID: {ticket_id}, Route ID: {route_id}, Cart ID: {cart_id}, Seat Number: {seat_nr}, Section IDs: {section_ids}")
-
-def create_order(customerID, numberOfTickets, orderDateAndTime):
-    query = """
-    INSERT INTO Orders (customerID, numberOfTickets, orderDateAndTime)
-    VALUES (?, ?, ?)
-    """
-    cursorObj.execute(query, (customerID, numberOfTickets, orderDateAndTime))
-    orderID = cursorObj.lastrowid
-
-    database.commit()
-   
-
-    return orderID
 
 
-def create_ticket(orderID, startLoc, endLoc, seatNr, routeID, section_ids, cart_id):
-    
-    query = """
-    INSERT INTO Ticket (orderID, startLoc, endLoc, seatNr, routeID)
-    VALUES (?, ?, ?, ?, ?)
-    """
-    cursorObj.execute(query, (orderID, startLoc, endLoc, seatNr, routeID))
-    ticketID = cursorObj.lastrowid
-
-     # Insert a new reserved seat into the ReservedSeat table for each section
-    for section_id in section_ids:
-        insert_reserved_seat_query = "INSERT INTO ReservedSeat (ticketID, cartsID, sectionID) VALUES (?, ?, ?)"
-        cursorObj.execute(insert_reserved_seat_query, (ticketID, cart_id, section_id))
-    
-
-    database.commit()
-    
-
-    return ticketID
-
-def create_ticket(customerID, startLoc, endLoc, seats, routeID, cartsID, sectionID):
+def create_ticket(customerID, startLoc, endLoc, seats, routeID, cartsID, section_ids):
     # Insert an order in the Orders table
     order_date_time = datetime.now()
     cursorObj.execute("INSERT INTO Orders (numberOfTickets, orderDateAndTime, customerID) VALUES (?, ?, ?)",
@@ -262,35 +210,38 @@ def create_ticket(customerID, startLoc, endLoc, seats, routeID, cartsID, section
 
         # Get the ticketID of the newly inserted ticket
         cursorObj.execute("SELECT last_insert_rowid()")
-        ticketID = cur.fetchone()[0]
+        ticketID = cursorObj.fetchone()[0]
         ticketIDs.append(ticketID)
 
-        # Insert into ReservedSeat table
-        cursorObj.execute(
-            "INSERT INTO ReservedSeat (ticketID, cartsID, sectionID) VALUES (?, ?, ?)",
-            (ticketID, cartsID, sectionID))
-        database.commit()
+    #section_ids=get_section_ids(startLoc, endLoc)
+    # Insert a new reserved seat into the ReservedSeat table for each section
+    for ticketID in ticketIDs:
+        for section_id in section_ids:
+            if is_seat_reserved(seat, cartsID, section_id):
+                print(f"Seat {seat} is already reserved for Cart ID {cartsID} and Section ID {section_id}. Please choose a different seat.")
+                return None
+            else:
+                insert_reserved_seat_query = "INSERT INTO ReservedSeat (ticketID, cartsID, sectionID) VALUES (?, ?, ?)"
+                cursorObj.execute(insert_reserved_seat_query, (ticketID, cartsID, section_id))
+                database.commit()
+
 
     return ticketIDs
 
-# Get input from the user
-startLoc = input("Enter the start location: ")
-endLoc = input("Enter the end location: ")
-routeID = int(input("Enter the route ID: "))
-cartsID = int(input("Enter the carts ID: "))
-sectionID = int(input("Enter the section ID: "))
-customerID = int(input("Enter your customer ID: "))
 
-# Get the number of seats to book and the seat numbers
-num_seats = int(input("Enter the number of seats you want to book: "))
-seats = []
-for i in range(num_seats):
-    seatNr = int(input(f"Enter seat number for seat {i + 1}: "))
-    seats.append(seatNr)
+def is_seat_reserved(seat, cartsID, section_id):
+    query = """
+    SELECT COUNT(*) 
+    FROM Ticket t
+    JOIN ReservedSeat rs ON t.ticketID = rs.ticketID
+    WHERE t.seatNr = ? AND rs.cartsID = ? AND rs.sectionID = ?
+    """
+    
+    cursorObj.execute(query, (seat, cartsID, section_id))
+    result = cursorObj.fetchone()[0]
+    
+    return result > 0
 
-# Create the tickets
-ticketIDs = create_ticket(customerID, startLoc, endLoc, seats, routeID, cartsID, sectionID)
-print(f"Created tickets with ticketIDs: {ticketIDs}")
 
 
 
@@ -309,13 +260,24 @@ def brukerhistorie_G():
             print(f"Route ID: {route_id}, Cart ID: {cart_id}, Cart Type: {cart_type}, Available Seats: {available_seats}, Departure Time: {departure_time}, Arrival Time: {arrival_time}")
 
         
-        selected_route_id = int(input("Enter the Route ID you want to book: "))
-        selected_carts_id = int(input("Enter the Cart ID you want to book: "))
-        selected_seat_nr = int(input("Enter the seat number you want to book: "))
-
+        routeID = int(input("Enter the route ID: "))
+        cartsID = int(input("Enter the carts ID: "))
+        # Get the number of seats to book and the seat numbers
+        num_seats = int(input("Enter the number of seats you want to book: "))
+        seats = []
+        for i in range(num_seats):
+            while True:
+                seatNr = int(input(f"Enter seat number for seat {i + 1}: "))
+                if not is_seat_reserved(seatNr, cartsID, section_ids[0]): # Check reservation for the first section
+                    seats.append(seatNr)
+                    break
+                else:
+                    print(f"Seat {seatNr} is already reserved. Please choose a different seat.")
         
-        create_ticket(selected_route_id, selected_carts_id, selected_seat_nr, customer_id, section_ids)
-        
+        # Create the tickets
+        ticketIDs = create_ticket(customer_id, start_station, end_station, seats, routeID, cartsID, section_ids)
+        if ticketIDs:
+            print(f"Created tickets with ticketIDs: {ticketIDs}")
 
 
 
