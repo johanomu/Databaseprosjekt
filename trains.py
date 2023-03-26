@@ -1,6 +1,6 @@
 import sqlite3
 import datetime
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 database = sqlite3.connect("Hotfix.db")
@@ -15,14 +15,18 @@ def signin():
     print("Login")
     name = input("Skriv inn navn: ")
     password = input("Skriv inn passord: ")
-    customer = cursorObj.execute("SELECT password FROM Customer WHERE name = '{}'".format(name))
-    for i in customer.fetchall():
-        if i[0] == password:
+    customer = cursorObj.execute("SELECT customerID, password FROM Customer WHERE name = ?", (name,))
+    result = customer.fetchone()
+    if result:
+        stored_password = result[1]
+        if stored_password == password:
             print("Du er logget inn")
-            return True
+            customerID = result[0]
+            return customerID
     print("Feil navn eller passord")
+    return None
 
-customerID = signin()
+
 
 def signup():
     print("Lag bruker")
@@ -101,7 +105,11 @@ def getFutureOrders():
         print("Ticket ID:", row[9])
         print("--------------------------")
 
-def brukerhistorie_C(station, weekday):
+def brukerhistorie_C():
+    station = input("Oppgi navnet på stasjonen du vil reise fra: ")
+    weekday1 = input("Oppgi ukedag du har lyst til å reise på, f.eks (Mandag, Tirsdag, osv.): ")
+    weekday = weekday1.lower()
+
     query = '''
     SELECT tr.routeID, tr.dateAndTime, tr.weekday, v_start.name AS start_station, v_end.name AS end_station
     FROM TrainRoute tr
@@ -114,9 +122,12 @@ def brukerhistorie_C(station, weekday):
     cursorObj.execute(query, (station, weekday))
     routes = cursorObj.fetchall()
 
-    database.close()
-
-    return routes
+    if routes:
+        print(f"Togruter for {station} på {weekday}:")
+        for route in routes:
+            print(f"Rutenummer: {route[0]}, Dato og tidspunkt: {route[1]}, Startstasjon: {route[3]}, Endestasjon: {route[4]}")
+    else:
+        print(f"Ingen togruter funnet for {weekday}.")
 
 
 def get_available_seats(start_station, end_station, departure_time):
@@ -246,9 +257,9 @@ def is_seat_reserved(seat, cartsID, section_id):
 
 
 def brukerhistorie_G():
-    start_station = input("Enter the start station: ")
-    end_station = input("Enter the end station: ")
-    date_time = input("Enter the date and time (YYYY-MM-DD HH:MI:SS): ")
+    start_station = input("Skriv inn startstasjon: ")
+    end_station = input("Skriv inn endestasjon: ")
+    date_time = input("Skriv inn avreisetidspunkt (YYYY-MM-DD HH:MI:SS): ")
     
     customer_id = customerID
     section_ids = get_section_ids(start_station, end_station)
@@ -258,22 +269,40 @@ def brukerhistorie_G():
         print("No available seats found.")
     else:
         for route_id, cart_id, cart_type, available_seats, departure_time, arrival_time in available_seats:
-            print(f"Route ID: {route_id}, Cart ID: {cart_id}, Cart Type: {cart_type}, Available Seats: {available_seats}, Departure Time: {departure_time}, Arrival Time: {arrival_time}")
+            print(f"Rute ID: {route_id}, Vogn ID: {cart_id}, Vogntype: {cart_type}, Antall ledige seter: {available_seats}, Avreise: {departure_time}, Ankomst: {arrival_time}")
 
         
-        routeID = int(input("Enter the route ID: "))
-        cartsID = int(input("Enter the carts ID: "))
+        routeID = int(input("Skriv inn rute ID: "))
+        cartsID = int(input("Skriv inn vogn ID: "))
         # Get the number of seats to book and the seat numbers
-        num_seats = int(input("Enter the number of seats you want to book: "))
-        seats = []
-        for i in range(num_seats):
-            while True:
-                seatNr = int(input(f"Enter seat number for seat {i + 1}: "))
-                if not is_seat_reserved(seatNr, cartsID, section_ids[0]): # Check reservation for the first section
-                    seats.append(seatNr)
-                    break
-                else:
-                    print(f"Seat {seatNr} is already reserved. Please choose a different seat.")
+        if (cartsID == 3 or cartsID == 6):
+            num_seats = int(input("Skriv inn antall kupeer du vil kjøpe: "))
+            seats = []
+            for i in range(num_seats):
+                while True:
+                    seatNr = int(input(f"Skriv inn kupenummer for kupe {i + 1}, tall mellom 1-4: "))
+                    if (seatNr <= 4 and seatNr >= 1):
+                        if not is_seat_reserved(seatNr, cartsID, section_ids[0]): # Check reservation for the first section
+                            seats.append(seatNr)
+                            break
+                        else:
+                            print(f"Kupeen {seatNr} er allerede reservert, vennligst velg en annen kupe.")
+                    else:
+                        print("Ugylig kupenummer")
+        else:
+            num_seats = int(input("Skriv inn antall seter du vil kjøpe: "))
+            seats = []
+            for i in range(num_seats):
+                while True:
+                    seatNr = int(input(f"Skriv inn setenummer for sete {i + 1}, tall mellom 1-12: "))
+                    if (seatNr <= 12 and seatNr >= 1):
+                        if not is_seat_reserved(seatNr, cartsID, section_ids[0]): # Check reservation for the first section
+                            seats.append(seatNr)
+                            break
+                        else:
+                            print(f"Seat {seatNr} is already reserved. Please choose a different seat.")
+                    else:
+                        print("Ugyldig setenummer")
         
         # Create the tickets
         ticketIDs = create_ticket(customer_id, start_station, end_station, seats, routeID, cartsID, section_ids)
@@ -283,41 +312,39 @@ def brukerhistorie_G():
 
 
 def main():
+    global customerID
     print("Velkommen til togbaneDB")
-    print("Trykk 'l' for login, eller 'r' for registrer: ")
-    logIn = input("Login eller registrer: : r")
+    print("Skriv 'l' for login, eller 'r' for registrer: ")
+    logIn = input("Login eller registrer: ")
     if logIn == "l":
-        #global customerID = 
-        signin()
+        customerID = signin()
+        if customerID is None:
+            print("Login failed.")
+            return
         
     elif logIn == "r":
         signup()
 
-    action = input("Hvilken brukerhistorie vil du gjennomføre a-h: ")
-    print("Gjennomfører brukerhistorie " + action)
-    print("----------------------------------------")
+    while True:
+        action = input("\nVelg brukerhistorie: c, d, e, g eller h.\nVelg q for å avslutte programmet.\n\nValg: ")
+        if action == 'q':
+            print("\nTakk for nå!")
+            break
+       
+        elif (action == "c"):
+            brukerhistorie_C()
 
-    if (action == "c"):
-        station = input("Oppgi navnet på stasjonen du vil reise fra: ")
-        weekday1 = input("Oppgi ukedag du har lyst til å reise på, f.eks (Mandag, Tirsdag, osv.): ")
-        weekday = weekday1.lower()
+        elif (action == "d"):
+            routes = getRoutesStartEnd()
+            for route in routes:
+                print(route)
 
-        train_routes = brukerhistorie_C(station, weekday)
+        elif (action == "g"):
+            brukerhistorie_G()
 
-        if train_routes:
-            print(f"Togruter for {station} på {weekday}:")
-            for route in train_routes:
-                print(f"Rutenummer: {route[0]}, Dato og tidspunkt: {route[1]}, Startstasjon: {route[3]}, Endestasjon: {route[4]}")
+        elif (action == "h"):
+            getFutureOrders()
+            
         else:
-            print("No train routes found for the given station and weekday.")
-
-    elif (action == "d"):
-        routes = getRoutesStartEnd()
-        for route in routes:
-            print(route)
-
-    elif (action == "g"):
-        brukerhistorie_G()
-    elif (action == "h"):
-        getFutureOrders()
+            print("Ugyldig kommando, prøv igjen!")
 main()
