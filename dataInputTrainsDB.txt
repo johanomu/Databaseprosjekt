@@ -230,26 +230,26 @@ Train Route:
 
 INSERT INTO "main"."TrainRoute"
 ("dateAndTime","weekday", "trackID", "operatorID")
-VALUES ("03/04/23/07:49","onsdag", 1, 1);
+VALUES ("2023-04-03 07:49:00","onsdag", 1, 1);
 INSERT INTO "main"."TrainRoute"
 ("dateAndTime","weekday", "trackID", "operatorID")
-VALUES ("04/04/23/23:05","torsdag", 1, 1);
+VALUES ("2023-04-04 07:49:00","torsdag", 1, 1);
 
 
 INSERT INTO "main"."TrainRoute"
 ("dateAndTime","weekday", "trackID", "operatorID")
-VALUES ("03/04/23/08:11","onsdag", 3, 1);
+VALUES ("2023-04-03 08:11:00","onsdag", 3, 1);
 INSERT INTO "main"."TrainRoute"
 ("dateAndTime","weekday", "trackID", "operatorID")
-VALUES ("04/04/23/08:11","torsdag", 3, 1);
+VALUES ("2023-04-04 08:11:00","torsdag", 3, 1);
 
 
 INSERT INTO "main"."TrainRoute"
 ("dateAndTime","weekday", "trackID", "operatorID")
-VALUES ("03/04/23/23:05","onsdag", 2, 1);
+VALUES ("2023-04-03 23:05:00","onsdag", 2, 1);
 INSERT INTO "main"."TrainRoute"
 ("dateAndTime","weekday", "trackID", "operatorID")
-VALUES ("04/04/23/23:05","torsdag", 2, 1);
+VALUES ("2023-04-04 23:05:00","torsdag", 2, 1);
 
 CartsOnRoute:
 
