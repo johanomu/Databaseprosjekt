@@ -46,10 +46,12 @@ def getRoutesStartEnd():
 
     sqlQuery = """
         SELECT DISTINCT TrainRoute.routeID, TrainRoute.trackID, TrainRoute.dateAndTime, TrainRoute.weekday
-        FROM Visits
-        JOIN Tracks ON Visits.trackID = Tracks.trackID
-        JOIN TrainRoute ON Tracks.trackID = TrainRoute.trackID
-        WHERE (Visits.name = ? OR Visits.name = ?) AND TrainRoute.dateAndTime BETWEEN ? AND ?
+        FROM Visits AS v1
+        JOIN Tracks AS t1 ON v1.trackID = t1.trackID
+        JOIN Visits AS v2 ON v1.trackID = v2.trackID
+        JOIN Tracks AS t2 ON v2.trackID = t2.trackID
+        JOIN TrainRoute ON t1.trackID = TrainRoute.trackID
+        WHERE v1.name = ? AND v2.name = ? AND TrainRoute.dateAndTime BETWEEN ? AND ?
         ORDER BY TrainRoute.dateAndTime ASC
         """
     cursorObj.execute(sqlQuery, (start, end, dateTime.strftime('%Y-%m-%d %H:%M:%S'), (dateTime + datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S')))
@@ -75,16 +77,17 @@ def getFutureOrders():
 
     cursorObj.execute(sqlQuery, (email, dateTime,))
     orders = cursorObj.fetchall()
-    
+
+    print("-----------Dine fremtidige ordre-------------")
     for order in orders:
-        cursorObj.execute("SELECT Ticket.startLoc, Ticket.endLoc, Ticket.seatNr FROM Ticket WHERE Ticket.orderID = ?", (order[0],))
+        cursorObj.execute("SELECT Ticket.startLoc, Ticket.endLoc, Ticket.seatNr FROM Ticket WHERE Ticket.orderID = ?", (order[5],))
         tickets = cursorObj.fetchall()
-        print(f"Ordre ID: {order[0]}")
-        print(f"Dato: {order[1]}")
-        print(f"Total pris: {order[2]}")
+        print(f"Ordre ID: {order[5]}")
+        print(f"Dato: {order[7]}")
+        print(f"Antall biletter: {order[6]}")
         print("Biletter:")
         for ticket in tickets:
-            print(f"Fra: {ticket[0]}, Til: {ticket[1]}, Sete nummer: {ticket[2]}")
+            print(f"    Fra: {ticket[0]}, Til: {ticket[1]}, Sete nummer: {ticket[2]}")
         print("------------------------------------------")
 
 def main():
