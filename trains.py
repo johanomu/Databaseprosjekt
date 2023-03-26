@@ -1,6 +1,6 @@
 import sqlite3
 import datetime
-from datetime import datetime, timedelta
+from datetime import date
 
 
 database = sqlite3.connect("Hotfix.db")
@@ -12,9 +12,10 @@ def fetch(database):
 fetch(database)
 
 def signin():
-    print("Login")
+    print("---------------Login-----------------")
     name = input("Skriv inn navn: ")
     password = input("Skriv inn passord: ")
+    print("---------------Login-----------------")
     customer = cursorObj.execute("SELECT password FROM Customer WHERE name = '{}'".format(name))
     for i in customer.fetchall():
         if i[0] == password:
@@ -25,11 +26,12 @@ def signin():
 customerID = signin()
 
 def signup():
-    print("Lag bruker")
+    print("------------Lag ny bruker-----------------")
     name = input("Skriv inn navn: ")
     epost = input("Skriv inn epost: ")
     tlf = input("Skriv inn tlf: ")
     password = input("Skriv inn passord: ")
+    print("---------------Login-----------------")
     emailCheck = cursorObj.execute("SELECT email FROM Customer")
     for i in emailCheck.fetchall():
         if i[0] == epost:
@@ -44,7 +46,7 @@ def getRoutesStartEnd():
     end = input("Til stasjon: ")
     dateAndTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
     dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
-
+    
     sqlQuery = """
         SELECT DISTINCT TrainRoute.routeID, TrainRoute.trackID, TrainRoute.dateAndTime, TrainRoute.weekday
         FROM Visits AS v1
@@ -55,7 +57,7 @@ def getRoutesStartEnd():
         WHERE v1.name = ? AND v2.name = ? AND TrainRoute.dateAndTime BETWEEN ? AND ?
         ORDER BY TrainRoute.dateAndTime ASC
         """
-    cursorObj.execute(sqlQuery, (start, end, dateTime.strftime('%Y-%m-%d %H:%M:%S'), (dateTime + datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S')))
+    cursorObj.execute(sqlQuery, (start, end, dateTime.strftime('%Y-%m-%d %H:%M:%S'), (dateTime + datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S'))) 
     routes = cursorObj.fetchall()
     print("------------------------------------")
     if len(routes) == 0:
@@ -276,7 +278,7 @@ def brukerhistorie_G():
 def main():
     print("Velkommen til togbaneDB")
     print("Trykk 'l' for login, eller 'r' for registrer: ")
-    logIn = input("Login eller registrer: : r")
+    logIn = input("Login eller registrer: :")
     if logIn == "l":
         #global customerID = 
         signin()
