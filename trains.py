@@ -128,7 +128,7 @@ def get_available_seats(start_station, end_station, departure_time):
     JOIN CartsOnRoute cor ON tr.routeID = cor.routeID
     JOIN Carts c ON cor.cartsID = c.cartsID
     JOIN Chair ch ON c.cartsID = ch.chairCartsID
-    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID AND cor.routeID = rs.routeID
+    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID 
     JOIN Visits v_start ON tr.trackID = v_start.trackID AND v_start.name = ?
     JOIN Visits v_end ON tr.trackID = v_end.trackID AND v_end.name = ?
     WHERE tr.routeID IN (
@@ -147,7 +147,7 @@ def get_available_seats(start_station, end_station, departure_time):
     JOIN CartsOnRoute cor ON tr.routeID = cor.routeID
     JOIN Carts c ON cor.cartsID = c.cartsID
     JOIN Sleeping sl ON c.cartsID = sl.sleepCartsID
-    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID AND cor.routeID = rs.routeID
+    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID 
     JOIN Visits v_start ON tr.trackID = v_start.trackID AND v_start.name = ?
     JOIN Visits v_end ON tr.trackID = v_end.trackID AND v_end.name = ?
     WHERE tr.routeID IN (
