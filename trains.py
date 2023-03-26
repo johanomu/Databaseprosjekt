@@ -41,7 +41,7 @@ def signup():
 def getRoutesStartEnd():
     start = input("Fra stasjon: ")
     end = input("Til stasjon: ")
-    dateAndTime = input("Dato og tid (YYYY-MM-DD HH:MM): ")
+    dateAndTime = input("Dato og tid (YYYY-MM-DD HH:MM:SS): ")
     dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
 
     sqlQuery = """
@@ -65,7 +65,7 @@ def getRoutesStartEnd():
 def getFutureOrders():
     email = input("Skriv inn mailen din: ")
     dateAndTime = input("Fra dato: ")
-    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M')
+    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
     
     sqlQuery = """
     SELECT * FROM Customer 
