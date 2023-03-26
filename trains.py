@@ -128,7 +128,7 @@ def get_available_seats(start_station, end_station, departure_time):
     JOIN CartsOnRoute cor ON tr.routeID = cor.routeID
     JOIN Carts c ON cor.cartsID = c.cartsID
     JOIN Chair ch ON c.cartsID = ch.chairCartsID
-    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID
+    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID AND cor.routeID = rs.routeID
     JOIN Visits v_start ON tr.trackID = v_start.trackID AND v_start.name = ?
     JOIN Visits v_end ON tr.trackID = v_end.trackID AND v_end.name = ?
     WHERE tr.routeID IN (
@@ -147,7 +147,7 @@ def get_available_seats(start_station, end_station, departure_time):
     JOIN CartsOnRoute cor ON tr.routeID = cor.routeID
     JOIN Carts c ON cor.cartsID = c.cartsID
     JOIN Sleeping sl ON c.cartsID = sl.sleepCartsID
-    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID
+    LEFT JOIN ReservedSeat rs ON c.cartsID = rs.cartsID AND cor.routeID = rs.routeID
     JOIN Visits v_start ON tr.trackID = v_start.trackID AND v_start.name = ?
     JOIN Visits v_end ON tr.trackID = v_end.trackID AND v_end.name = ?
     WHERE tr.routeID IN (
@@ -219,7 +219,7 @@ def create_ticket(customerID, startLoc, endLoc, seats, routeID, cartsID, section
     # Insert a new reserved seat into the ReservedSeat table for each section
     for ticketID in ticketIDs:
         for section_id in section_ids:
-            if is_seat_reserved(seat, cartsID, section_id):
+            if is_seat_reserved(seat, cartsID, section_id, routeID):
                 print(f"Seat {seat} is already reserved for Cart ID {cartsID} and Section ID {section_id}. Please choose a different seat.")
                 return None
             else:
@@ -231,18 +231,19 @@ def create_ticket(customerID, startLoc, endLoc, seats, routeID, cartsID, section
     return ticketIDs
 
 
-def is_seat_reserved(seat, cartsID, section_id):
+def is_seat_reserved(seat, cartsID, section_id, routeID):
     query = """
     SELECT COUNT(*) 
     FROM Ticket t
     JOIN ReservedSeat rs ON t.ticketID = rs.ticketID
-    WHERE t.seatNr = ? AND rs.cartsID = ? AND rs.sectionID = ?
+    WHERE t.seatNr = ? AND rs.cartsID = ? AND rs.sectionID = ? AND t.routeID = ?
     """
     
-    cursorObj.execute(query, (seat, cartsID, section_id))
+    cursorObj.execute(query, (seat, cartsID, section_id, routeID))
     result = cursorObj.fetchone()[0]
     
     return result > 0
+
 
 
 
@@ -260,9 +261,13 @@ def brukerhistorie_G():
         print("No available seats found.")
     else:
         for route_id, cart_id, cart_type, available_seats, departure_time, arrival_time in available_seats:
-            print(f"Rute ID: {route_id}, Vogn ID: {cart_id}, Vogntype: {cart_type}, Antall ledige seter: {available_seats}, Avreise: {departure_time}, Ankomst: {arrival_time}")
+            if (cart_type == "sleeping"):
+                print(f"Rute ID: {route_id}, Vogn ID: {cart_id}, Vogntype: {cart_type}, Antall ledige sovekupeer: {available_seats}, Avreise: {departure_time}, Ankomst: {arrival_time}")
+            else:
+                print(f"Rute ID: {route_id}, Vogn ID: {cart_id}, Vogntype: {cart_type}, Antall ledige seter: {available_seats}, Avreise: {departure_time}, Ankomst: {arrival_time}")
 
-        
+
+        print("Her kan du velge avgang, vogn og sete:")
         routeID = int(input("Skriv inn rute ID: "))
         cartsID = int(input("Skriv inn vogn ID: "))
         # Get the number of seats to book and the seat numbers
@@ -273,7 +278,7 @@ def brukerhistorie_G():
                 while True:
                     seatNr = int(input(f"Skriv inn kupenummer for kupe {i + 1}, tall mellom 1-4: "))
                     if (seatNr <= 4 and seatNr >= 1):
-                        if not is_seat_reserved(seatNr, cartsID, section_ids[0]): # Check reservation for the first section
+                        if not is_seat_reserved(seatNr, cartsID, section_ids[0], routeID): # Check reservation for the first section
                             seats.append(seatNr)
                             break
                         else:
@@ -287,7 +292,7 @@ def brukerhistorie_G():
                 while True:
                     seatNr = int(input(f"Skriv inn setenummer for sete {i + 1}, tall mellom 1-12: "))
                     if (seatNr <= 12 and seatNr >= 1):
-                        if not is_seat_reserved(seatNr, cartsID, section_ids[0]): # Check reservation for the first section
+                        if not is_seat_reserved(seatNr, cartsID, section_ids[0], routeID): # Check reservation for the first section
                             seats.append(seatNr)
                             break
                         else:
@@ -321,6 +326,7 @@ def main():
         if action == 'q':
             print("\nTakk for nå!")
             break
+        
        
         elif (action == "c"):
             brukerhistorie_C()
