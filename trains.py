@@ -260,9 +260,13 @@ def brukerhistorie_G():
         print("No available seats found.")
     else:
         for route_id, cart_id, cart_type, available_seats, departure_time, arrival_time in available_seats:
-            print(f"Rute ID: {route_id}, Vogn ID: {cart_id}, Vogntype: {cart_type}, Antall ledige seter: {available_seats}, Avreise: {departure_time}, Ankomst: {arrival_time}")
+            if (cart_type == "sleeping"):
+                print(f"Rute ID: {route_id}, Vogn ID: {cart_id}, Vogntype: {cart_type}, Antall ledige sovekupeer: {available_seats}, Avreise: {departure_time}, Ankomst: {arrival_time}")
+            else:
+                print(f"Rute ID: {route_id}, Vogn ID: {cart_id}, Vogntype: {cart_type}, Antall ledige seter: {available_seats}, Avreise: {departure_time}, Ankomst: {arrival_time}")
 
-        
+
+        print("Her kan du velge avgang, vogn og sete:")
         routeID = int(input("Skriv inn rute ID: "))
         cartsID = int(input("Skriv inn vogn ID: "))
         # Get the number of seats to book and the seat numbers
@@ -321,6 +325,7 @@ def main():
         if action == 'q':
             print("\nTakk for nå!")
             break
+        
        
         elif (action == "c"):
             brukerhistorie_C()
