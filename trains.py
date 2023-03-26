@@ -75,13 +75,13 @@ def getFutureOrders():
     dateTime = datetime.now()
     
     sqlQuery = """
-    SELECT Orders.orderID, Orders.numberOfTickets, TrainRoute.dateAndTime, Ticket.startLoc, Ticket.endLoc, Ticket.seatNr, Departure.arrivalTime, Arrival.departureTime
+    SELECT Orders.orderID, Orders.numberOfTickets, TrainRoute.dateAndTime, Ticket.startLoc, Ticket.endLoc, Ticket.seatNr, Departure.departureTime, Arrival.arrivalTime
     FROM Customer 
     JOIN Orders ON Customer.customerID = Orders.customerID
     JOIN Ticket ON Orders.orderID = Ticket.orderID
     JOIN TrainRoute ON Ticket.routeID = TrainRoute.routeID
-    JOIN Visits AS Departure ON TrainRoute.trackID = Departure.trackID AND Ticket.startLoc = Departure.name
-    JOIN Visits AS Arrival ON TrainRoute.trackID = Arrival.trackID AND Ticket.endLoc = Arrival.name
+    JOIN Visits AS Departure ON TrainRoute.routeID = Departure.trackID AND Ticket.startLoc = Departure.name
+    JOIN Visits AS Arrival ON TrainRoute.routeID = Arrival.trackID AND Ticket.endLoc = Arrival.name
     WHERE Customer.email = ? AND TrainRoute.dateAndTime > ?
     """
 
@@ -91,7 +91,7 @@ def getFutureOrders():
     print("-----------Dine fremtidige ordre-------------")
     for order in orders:
         print(f"Ordre ID: {order[0]}")
-        print(f"Dato: {order[2]}")
+        print(f"Rutestart fra startstasjon: {order[2]}")
         print(f"Antall biletter: {order[1]}")
         print(f"Fra: {order[3]}, Til: {order[4]}, Sete nummer: {order[5]}")
         print(f"Avgangstid: {order[6]}")
