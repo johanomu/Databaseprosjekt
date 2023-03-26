@@ -72,7 +72,7 @@ def getRoutesStartEnd():
 
 def getFutureOrders():
     email = input("Skriv inn mailen din: ")
-    dateAndTime = input("Fra dato:(YYYY-MM-DD HH:MM:SS")
+    dateAndTime = input("Fra dato:(YYYY-MM-DD HH:MM:SS: ")
     dateTime = datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
     
     sqlQuery = """
