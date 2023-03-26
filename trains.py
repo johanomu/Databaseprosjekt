@@ -1,6 +1,6 @@
 import sqlite3
 import datetime
-from datetime import datetime, timedelta
+from datetime import date
 
 
 database = sqlite3.connect("Hotfix.db")
