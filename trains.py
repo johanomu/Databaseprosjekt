@@ -2,7 +2,7 @@ import sqlite3
 import datetime
 from datetime import date
 
-database = sqlite3.connect("lastTestDb.db")
+database = sqlite3.connect("Hotfix.db")
 cursorObj = database.cursor()
 epost = ""
 
