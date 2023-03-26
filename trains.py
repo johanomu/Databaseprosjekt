@@ -72,13 +72,17 @@ def getRoutesStartEnd():
 
 def getFutureOrders():
     email = input("Skriv inn mailen din: ")
-    dateAndTime = input("Fra dato:(YYYY-MM-DD HH:MM:SS: ")
-    dateTime = datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
+    dateTime = datetime.now()
     
     sqlQuery = """
-    SELECT * FROM Customer 
+    SELECT Orders.orderID, Orders.numberOfTickets, TrainRoute.dateAndTime, Ticket.startLoc, Ticket.endLoc, Ticket.seatNr, Departure.arrivalTime, Arrival.departureTime
+    FROM Customer 
     JOIN Orders ON Customer.customerID = Orders.customerID
-    WHERE Customer.email = ? AND Orders.orderDateAndTime > ?
+    JOIN Ticket ON Orders.orderID = Ticket.orderID
+    JOIN TrainRoute ON Ticket.routeID = TrainRoute.routeID
+    JOIN Visits AS Departure ON TrainRoute.trackID = Departure.trackID AND Ticket.startLoc = Departure.name
+    JOIN Visits AS Arrival ON TrainRoute.trackID = Arrival.trackID AND Ticket.endLoc = Arrival.name
+    WHERE Customer.email = ? AND TrainRoute.dateAndTime > ?
     """
 
     cursorObj.execute(sqlQuery, (email, dateTime,))
@@ -86,14 +90,11 @@ def getFutureOrders():
 
     print("-----------Dine fremtidige ordre-------------")
     for order in orders:
-        cursorObj.execute("SELECT Ticket.startLoc, Ticket.endLoc, Ticket.seatNr FROM Ticket WHERE Ticket.orderID = ?", (order[5],))
-        tickets = cursorObj.fetchall()
-        print(f"Ordre ID: {order[5]}")
-        print(f"Dato: {order[7]}")
-        print(f"Antall biletter: {order[6]}")
-        print("Biletter:")
-        for ticket in tickets:
-            print(f"    Fra: {ticket[0]}, Til: {ticket[1]}, Sete nummer: {ticket[2]}")
+        print(f"Ordre ID: {order[0]}")
+        print(f"Dato: {order[2]}")
+        print(f"Antall biletter: {order[1]}")
+        print(f"Fra: {order[3]}, Til: {order[4]}, Sete nummer: {order[5]}")
+        print(f"Avgangstid: {order[6]}")
         print("------------------------------------------")
 
 def brukerhistorie_C():
@@ -339,7 +340,7 @@ def main():
 
         elif (action == "h"):
             getFutureOrders()
-            
+                    
         else:
             print("Ugyldig kommando, prøv igjen!")
 main()
