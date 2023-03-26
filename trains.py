@@ -1,6 +1,6 @@
 import sqlite3
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 database = sqlite3.connect("Hotfix.db")
@@ -72,7 +72,7 @@ def getRoutesStartEnd():
 
 def getFutureOrders():
     email = input("Skriv inn mailen din: ")
-    dateAndTime = input("Fra dato: ")
+    dateAndTime = input("Fra dato:(YYYY-MM-DD HH:MM:SS")
     dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
     
     sqlQuery = """
@@ -317,7 +317,7 @@ def main():
         signup()
 
     while True:
-        action = input("\nVelg brukerhistorie: c, d, e, g eller h.\nVelg q for å avslutte programmet.\n\nValg: ")
+        action = input("\nVelg brukerhistorie: c, d, g eller h.\nVelg q for å avslutte programmet.\n\nValg: ")
         if action == 'q':
             print("\nTakk for nå!")
             break
