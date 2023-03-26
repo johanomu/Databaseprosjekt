@@ -12,9 +12,10 @@ def fetch(database):
 fetch(database)
 
 def signin():
-    print("Login")
+    print("----------------Login--------------")
     name = input("Skriv inn navn: ")
     password = input("Skriv inn passord: ")
+    print("------------------------------------")
     customer = cursorObj.execute("SELECT customerID, password FROM Customer WHERE name = ?", (name,))
     result = customer.fetchone()
     if result:
@@ -29,11 +30,12 @@ def signin():
 
 
 def signup():
-    print("Lag bruker")
+    print("-------------Lag bruker------------")
     name = input("Skriv inn navn: ")
     epost = input("Skriv inn epost: ")
     tlf = input("Skriv inn tlf: ")
     password = input("Skriv inn passord: ")
+    print("------------------------------------")
     emailCheck = cursorObj.execute("SELECT email FROM Customer")
     for i in emailCheck.fetchall():
         if i[0] == epost:
