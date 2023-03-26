@@ -249,6 +249,7 @@ def brukerhistorie_G():
     start_station = input("Enter the start station: ")
     end_station = input("Enter the end station: ")
     date_time = input("Enter the date and time (YYYY-MM-DD HH:MI:SS): ")
+    
     customer_id = customerID
     section_ids = get_section_ids(start_station, end_station)
 
