@@ -11,10 +11,11 @@ def fetch(database):
 fetch(database)
 
 def signin():
-    print("Login")
+    print("---------------Login-----------------")
     name = input("Skriv inn navn: ")
     password = input("Skriv inn passord: ")
-    customer = cursorObj.execute("SELECT passord FROM Customer WHERE name = '{}'".format(name))
+    print("---------------------------------")
+    customer = cursorObj.execute("SELECT password FROM Customer WHERE name = '{}'".format(name))
     for i in customer.fetchall():
         if i[0] == password:
             print("Du er logget inn")
@@ -22,11 +23,12 @@ def signin():
     print("Feil navn eller passord")
 
 def signup():
-    print("Lag bruker")
+    print("------------Lag ny bruker-----------------")
     name = input("Skriv inn navn: ")
     epost = input("Skriv inn epost: ")
     tlf = input("Skriv inn tlf: ")
     password = input("Skriv inn passord: ")
+    print("----------------------------------")
     emailCheck = cursorObj.execute("SELECT email FROM Customer")
     for i in emailCheck.fetchall():
         if i[0] == epost:
@@ -34,13 +36,13 @@ def signup():
             return False
     cursorObj.execute("INSERT INTO Customer (name, phoneNr, email, password) VALUES ('{}', '{}', '{}', '{}')".format(name, tlf, epost, password))
     database.commit()
-    print("Bruker oprettet")
+    print("Bruker har blit oprettet")
 
 def getRoutesStartEnd():
     start = input("Fra stasjon: ")
     end = input("Til stasjon: ")
     dateAndTime = input("Dato og tid (YYYY-MM-DD HH:MM): ")
-    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M')
+    dateTime = datetime.datetime.strptime(dateAndTime, '%Y-%m-%d %H:%M:%S')
 
     sqlQuery = """
         SELECT DISTINCT TrainRoute.routeID, TrainRoute.trackID, TrainRoute.dateAndTime, TrainRoute.weekday
@@ -50,9 +52,9 @@ def getRoutesStartEnd():
         WHERE (Visits.name = ? OR Visits.name = ?) AND TrainRoute.dateAndTime BETWEEN ? AND ?
         ORDER BY TrainRoute.dateAndTime ASC
         """
-    cursorObj.execute(sqlQuery, (start, end, dateTime.strftime('%Y-%m-%d %H:%M'), (dateTime + datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M')))
+    cursorObj.execute(sqlQuery, (start, end, dateTime.strftime('%Y-%m-%d %H:%M:%S'), (dateTime + datetime.timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S')))
     routes = cursorObj.fetchall()
-
+    print("------------------------------------")
     if len(routes) == 0:
         print("Ingen ruter funnet.")
     else:
@@ -87,10 +89,10 @@ def getFutureOrders():
 
 def main():
     print("Velkommen til togbaneDB")
-    logIn = input("Log in eller registrer: ")
-    if logIn == "l":
+    logIn = input("Logg inn eller registrer: ")
+    if logIn == "logg inn":
         signin()
-    elif logIn == "r":
+    elif logIn == "registrer":
         signup()
 
     action = input("Hvilken brukerhistorie vil du gjennomføre a-h: ")
